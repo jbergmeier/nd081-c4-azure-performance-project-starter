@@ -22,6 +22,8 @@ from opencensus.ext.azure.trace_exporter import AzureExporter
 from opencensus.trace.samplers import ProbabilitySampler
 from opencensus.trace.tracer import Tracer
 from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+from applicationinsights import TelemetryClient
+
 
 stats = stats_module.stats
 view_manager = stats.view_manager
@@ -61,6 +63,9 @@ middleware = FlaskMiddleware(
  sampler=ProbabilitySampler(rate=1.0)
 )
 
+tc = TelemetryClient('f4988448-63ed-4960-9c4e-b754b82bb1cf')
+
+
 # Load configurations from environment or config file
 app.config.from_pyfile('config_file.cfg')
 
@@ -95,15 +100,14 @@ def index():
 
     if request.method == 'GET':
 
-        # Get current values
         vote1 = r.get(button1).decode('utf-8')
-        with tracer.span(name="Cats Vote") as span:
-            print("Cats Vote")
-
+        tracer.span("Cats")
+        tc.track_event("Cats")
+        tc.flush()
         vote2 = r.get(button2).decode('utf-8')
-        # TODO: use tracer object to trace dog vote
-        with tracer.span(name="Dogs Vote") as span:
-            print("Dogs Vote")
+        tracer.span("Dogs")
+        tc.track_event("Dogs")
+        tc.flush()
 
         # Return index with values
         return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
@@ -118,12 +122,12 @@ def index():
             vote1 = r.get(button1).decode('utf-8')
             properties = {'custom_dimensions': {'Cats Vote': vote1}}
             # TODO: use logger object to log cat vote
-            logger.warning('Cats Vote', extra=properties)
+            logger.warning('Cat', extra=properties)
 
             vote2 = r.get(button2).decode('utf-8')
             properties = {'custom_dimensions': {'Dogs Vote': vote2}}
             # TODO: use logger object to log dog vote
-            logger.warning('Dogs Vote', extra=properties)
+            logger.warning('Dog', extra=properties)
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
 
         else:
